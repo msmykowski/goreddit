@@ -5,12 +5,15 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/ghttp"
 )
 
 var _ = Describe("RedditPost", func() {
 	var (
 		redditPost RedditPost
+		server     *ghttp.Server
 	)
+
 	Describe("GetImgurId", func() {
 		Context("Reddit URL has no extension", func() {
 
@@ -74,6 +77,28 @@ var _ = Describe("RedditPost", func() {
 				imgurId := redditPost.GetImgurId()
 				Expect(imgurId).To(Equal("txyQWYL"))
 			})
+		})
+	})
+
+	Describe("GetImgurUrl", func() {
+		BeforeEach(func() {
+			server = ghttp.NewServer()
+		})
+
+		AfterEach(func() {
+			server.Close()
+		})
+
+		It("returns the Imgur URL", func() {
+			server.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "https://api.imgur.com/3/image/txyQWYL"),
+					ghttp.RespondWith(200, "[]"),
+				),
+			)
+
+			redditPost.GetImgurUrl("txyQWYL")
+			Expect(server.ReceivedRequests()).Should(HaveLen(1))
 		})
 	})
 })
